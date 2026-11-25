@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schemas.reqnroll.net/reqnroll-config-latest.json",
+  "language": {
+    "feature": "en-US"
+  },
+  "generator": {
+    "addNonParallelizableMarkerForTags": [
+      "serial"
+    ]
+  },
+  "formatters": {
+    "html": {
+      "outputFilePath": "reports/reqnroll_report.html"
+    }
+  }
+}
