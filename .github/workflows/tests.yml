@@ -1,0 +1,118 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Nightly run catches changes in qa-commerce-lab even when this repository does not change.
+    - cron: '41 3 * * *'
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Selenium + Reqnroll against the lab (Docker + Kafka)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out tests
+        uses: actions/checkout@v7
+
+      # A branch or pull request tests the lab branch with the same name, if it exists,
+      # so new scenarios and the lab changes they need can be developed together. Everything else tests main.
+      - name: Choose the lab version to test
+        id: lab
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          if [ "$BRANCH" != "main" ] && git ls-remote --exit-code --heads https://github.com/TomasevicJovan/qa-commerce-lab.git "$BRANCH" > /dev/null; then
+            ref="$BRANCH"
+          else
+            ref="main"
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "Testing qa-commerce-lab at: $ref"
+
+      - name: Check out qa-commerce-lab
+        uses: actions/checkout@v7
+        with:
+          repository: TomasevicJovan/qa-commerce-lab
+          path: lab
+          ref: ${{ steps.lab.outputs.ref }}
+
+      - name: Start the lab with fresh data
+        working-directory: lab
+        run: docker compose up --build -d --wait --wait-timeout 240
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        run: dotnet build --configuration Release
+
+      - name: Run scenarios
+        env:
+          # Seeded demo account of the lab. Stored as repository secrets, never in the code.
+          Demo__Email: ${{ secrets.DEMO_EMAIL }}
+          Demo__Password: ${{ secrets.DEMO_PASSWORD }}
+          # Set TEST_SEED as a repository variable to replay the random data of an earlier run.
+          TEST_SEED: ${{ vars.TEST_SEED }}
+        run: >
+          dotnet test --no-build --configuration Release
+          --logger "trx;LogFileName=results.trx"
+          --logger "console;verbosity=normal"
+          --results-directory TestResults
+
+      - name: Lab logs
+        if: failure()
+        working-directory: lab
+        run: docker compose logs --no-color --tail 200
+
+      - name: Collect the report
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p site
+          cp QaCommerceLab.Tests/bin/Release/net10.0/reports/reqnroll_report.html site/index.html
+          if [ -d QaCommerceLab.Tests/bin/Release/net10.0/screenshots ]; then cp -r QaCommerceLab.Tests/bin/Release/net10.0/screenshots site/; fi
+
+      - name: Upload report and results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: reqnroll-report
+          path: |
+            site/
+            TestResults/
+          retention-days: 14
+
+      - name: Prepare report for GitHub Pages
+        if: ${{ !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site/
+
+  publish-report:
+    name: Publish report to GitHub Pages
+    needs: test
+    # Publish failing runs too: a red report is the one people need to read.
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5
