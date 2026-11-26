@@ -4,7 +4,15 @@
 
 BDD test automation in C# for **FORMA**, a practice online shop ([qa-commerce-lab](https://github.com/TomasevicJovan/qa-commerce-lab)): Selenium WebDriver, Reqnroll and NUnit on .NET 10.
 
-The same shop is also tested in TypeScript with Playwright in [qa-commerce-lab-tests](https://github.com/TomasevicJovan/qa-commerce-lab-tests). That repository holds the detailed suite (456 tests, every field and message). This one covers the business rules and the main shopping journeys in Gherkin, written so that someone who is not a developer can read them and check them against the shop's [business rules](https://github.com/TomasevicJovan/qa-commerce-lab/blob/main/docs/BUSINESS.md).
+The same shop is tested three ways:
+
+| Repository | Stack | What it is for |
+|---|---|---|
+| [qa-commerce-lab-tests](https://github.com/TomasevicJovan/qa-commerce-lab-tests) | TypeScript, Playwright | The detailed suite: 456 tests, every field and message, OpenAPI contract checks |
+| **qa-commerce-lab-tests-dotnet** (this one) | C#, Selenium, Reqnroll | Business rules and shopping journeys in Gherkin |
+| [qa-commerce-lab-tests-java](https://github.com/TomasevicJovan/qa-commerce-lab-tests-java) | Java, Selenium, Cucumber | The same feature files as the C# repository, implemented in Java |
+
+This repository covers the business rules and the main shopping journeys in Gherkin. The scenarios are written so that someone who is not a developer can read them and check them against the shop's [business rules](https://github.com/TomasevicJovan/qa-commerce-lab/blob/main/docs/BUSINESS.md). The Java repository runs the same feature files.
 
 **Latest report:** [tomasevicjovan.github.io/qa-commerce-lab-tests-dotnet](https://tomasevicjovan.github.io/qa-commerce-lab-tests-dotnet/)
 
