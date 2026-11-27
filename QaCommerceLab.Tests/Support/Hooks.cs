@@ -12,7 +12,7 @@ public sealed class Hooks(IObjectContainer container, ScenarioContext scenario, 
     [BeforeTestRun]
     public static async Task CheckLabAndPrintSeed()
     {
-        TestContext.Progress.WriteLine($"Test data seed: {RandomData.RunSeed} (set TEST_SEED={RandomData.RunSeed} to repeat this run's data)");
+        await TestContext.Progress.WriteLineAsync($"Test data seed: {RandomData.RunSeed} (set TEST_SEED={RandomData.RunSeed} to repeat this run's data)");
         using var api = new ShopApi();
         try
         {
