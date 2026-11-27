@@ -100,6 +100,40 @@ jobs:
         with:
           path: site/
 
+  code-analysis:
+    name: Code analysis (SonarQube Cloud)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out tests
+        uses: actions/checkout@v7
+        with:
+          # Full history, so SonarQube Cloud can tell new code from old.
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Build and analyse
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "::notice::SONAR_TOKEN is not set (for example on a fork), so the analysis is skipped."
+            exit 0
+          fi
+          dotnet tool install --global dotnet-sonarscanner
+          dotnet sonarscanner begin \
+            /k:"TomasevicJovan_qa-commerce-lab-tests-dotnet" \
+            /o:"tomasevicjovan" \
+            /d:sonar.host.url="https://sonarcloud.io" \
+            /d:sonar.token="$SONAR_TOKEN" \
+            /d:sonar.exclusions="**/*.feature.cs"
+          dotnet build --configuration Release
+          dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
+
   publish-report:
     name: Publish report to GitHub Pages
     needs: test
