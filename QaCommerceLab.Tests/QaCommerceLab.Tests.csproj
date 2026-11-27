@@ -8,6 +8,9 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <UserSecretsId>qa-commerce-lab-tests-dotnet</UserSecretsId>
     <RootNamespace>QaCommerceLab.Tests</RootNamespace>
+    <!-- The whole project is test automation. SonarQube Cloud would otherwise treat it as test code
+         and check it with only a few rules; analysed as main code it gets the full rule set. -->
+    <SonarQubeTestProject>false</SonarQubeTestProject>
   </PropertyGroup>
 
   <ItemGroup>
